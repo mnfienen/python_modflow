@@ -354,9 +354,13 @@ class binary():
 
     def read_2drealarray(self,nrow,ncol):
         """Read a two dimensional binary real array."""
+        if self.platform.lower() == 'linux':
+                junkus = self.reader.read_integer()
         x = numpy.fromfile(file=self.file, dtype=self.real, 
                          count=nrow * ncol)
         x.shape = (nrow, ncol)
+        if self.platform.lower() == 'linux':
+                junkus = self.reader.read_integer()
         return x
 
     def read_1drealarray(self,ncol):

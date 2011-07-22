@@ -16,7 +16,7 @@ class HeadFile:
     
     """
     
-    def __init__(self,name,form='binary', order='lrc', precision='single'):
+    def __init__(self,name,form='binary', order='lrc', precision='single', platform='windows'):
         """Initialize the MODFLOW head file.
         
         Open the file and assign the appropriate reader type.  
@@ -25,6 +25,7 @@ class HeadFile:
         self.name = name
         self.form = form
         self.order = order
+        self.platform = platform
         #Open the file and assign the appropriate file reading class.
         if form == 'binary':
             self.file = open(self.name,'rb')
@@ -37,9 +38,12 @@ class HeadFile:
             self.headerbyte=(5 * self.reader.integerbyte + #kstp,kper,ncol,nrow,ilay
                              2 * self.reader.realbyte    + #pertim,totim
                              16 * self.reader.textbyte)    #text
+            if self.platform.lower() == 'linux':
+                self.headerbyte += 2 * self.reader.integerbyte
             self.build_index()
-            self.print_index()
+           #mnf debug self.print_index()
         #allocate space for 3D head array
+
         if order == 'lrc':
             self.head=numpy.empty((self.nlay,self.nrow,self.ncol))
         else:
@@ -51,44 +55,61 @@ class HeadFile:
         Uses the binary or ascii reader classes assigned to self.reader.
     
         """
-        verbose=False        
+        verbose=True
         try:
+            if self.platform.lower() == 'linux':
+                junkus = self.reader.read_integer()
+                if(verbose): print 'junkus ' + str(junkus)
             self.kstp = self.reader.read_integer()
+            if(verbose): print 'kstp ' + str(self.kstp)
+            
         except:
             if(verbose): print 'Error reading header value for kstp.'
             return False
         try:
             self.kper = self.reader.read_integer()
+            if(verbose): print 'kper ' + str(self.kper)
         except:
             if(verbose): print 'Error reading header value for kper.'
             return False
         try:
             self.pertim = self.reader.read_real()
+            if(verbose): print 'pertim ' + str(self.pertim)
         except:
             if(verbose): print 'Error reading header value for pertim.'
             return False
         try:
             self.totim  = self.reader.read_real()
+            if(verbose): print 'totim ' + str(self.totim)
         except:
             if(verbose): print 'Error reading header value for totim.'
             return False
         try:
             self.text   = self.reader.read_text()
+            if(verbose): print 'text ' + str(self.text)
         except:
             if(verbose): print 'Error reading header value for text.'
             return False
         try:
             self.ncol   = self.reader.read_integer()
+            if(verbose): print 'ncol ' + str(self.ncol)
+            
         except:
             if(verbose): print 'Error reading header value for ncol.'
             return False
         try:
             self.nrow   = self.reader.read_integer()
+            if(verbose): print 'nrow ' + str(self.nrow)
         except:
             if(verbose): print 'Error reading header value for nrow.'
             return False
         try:
             self.ilay   = self.reader.read_integer()
+            if(verbose): print 'ilay ' + str(self.ilay)
+
+            if self.platform.lower() == 'linux':
+                junkus = self.reader.read_integer()
+                if(verbose): print 'junkus ' + str(junkus)
         except:
             if(verbose): print 'Error reading header value for ilay.'
             return False
@@ -143,8 +164,11 @@ class HeadFile:
             position = self.file.tell()
             #get header information
             success = self.read_header()
+
             #skip through a 2D real array number of bytes
             nbytes = self.reader.realbyte*self.ncol*self.nrow
+            if self.platform.lower() == 'linux':
+                nbytes += 2 * self.reader.integerbyte
             self.file.seek(nbytes, 1)
             if not success: 
                 break
